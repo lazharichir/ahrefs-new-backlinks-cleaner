@@ -1,0 +1,299 @@
+<html lang="en">
+
+<head>
+	<title>Ahrefs Backlinks Cleaner</title>
+	<script>
+		const files = new Map();
+
+		const generateGuid = () => {
+			var result, i, j;
+			result = '';
+			for (j = 0; j < 32; j++) {
+				if (j == 8 || j == 12 || j == 16 || j == 20)
+					result = result + '-';
+				i = Math.floor(Math.random() * 16).toString(16).toUpperCase();
+				result = result + i;
+			}
+			return result;
+		}
+
+		const formatFileName = (value) => {
+			return value
+				.normalize('NFD') // split an accented letter in the base letter and the acent
+				.replace(/[\u0300-\u036f]/g, '') // remove all previously split accents
+				.toLowerCase()
+				.trim()
+				.replace(/[^a-z0-9-\. ]/g, '') // remove all chars not letters, numbers and spaces (to be replaced)
+				.replace(/\s+/g, '-') // separator
+		}
+
+		const downloadFileData = (filename, text) => {
+			const element = document.createElement('a');
+			element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(text));
+			element.setAttribute('download', filename);
+
+			element.style.display = 'none';
+			document.body.appendChild(element);
+
+			element.click();
+
+			document.body.removeChild(element);
+		}
+
+		const fileToBinary = file => new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = error => reject(error);
+			reader.readAsBinaryString(file);
+		});
+
+		const fileToText = file => new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result);
+			reader.onerror = error => reject(error);
+			reader.readAsText(file);
+		});
+
+		const preventDefaults = (e) => {
+			e.preventDefault()
+			e.stopPropagation()
+		}
+
+		const highlight = (e) => {
+			dropArea.classList.add('highlight')
+		}
+
+		const unhighlight = (e) => {
+			dropArea.classList.remove('highlight')
+		}
+
+		const handleDrop = (e) => {
+			let dt = e.dataTransfer
+			let files = dt.files
+			handleFiles(files)
+		}
+
+		const handleFiles = (files) => {
+			([...files]).forEach(handleFile)
+		}
+
+		const handleFile = async (file) => {
+			const input = document.getElementById(`the-files`)
+			const data = await fileToText(file)
+			const guid = generateGuid()
+			files.set(file.name, data)
+			console.log(`>>> ${file.name}`, file)
+			renderFileList()
+		}
+
+		const removeFile = (fileName) => {
+			files.delete(fileName)
+			renderFileList()
+		}
+
+		const renderFileList = () => {
+			const list = document.getElementById(`the-file-list`)
+
+			while (list.firstChild) {
+				list.removeChild(list.lastChild);
+			}
+
+			for (const [fileName, fileData] of Array.from(files)) {
+				const li = document.createElement(`li`)
+				li.onclick = (e) => {
+					e.preventDefault()
+					removeFile(fileName)
+				}
+				const span = document.createElement(`span`)
+				span.textContent = fileName
+				li.appendChild(span)
+				list.appendChild(li)
+			}
+		}
+
+		const showError = (error = ``) => {
+			const div = document.getElementById(`error`)
+			div.textContent = error ? error.message : ``
+		}
+
+	</script>
+
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body,
+		html {
+			padding: 0;
+			margin: 0;
+			font-family: sans-serif;
+		}
+
+		header {
+			padding: 5%;
+			background-color: #f0f0f0;
+			text-align: center;
+		}
+
+		header span {
+			display: block;
+			opacity: .2;
+			font-size: .8em;
+		}
+
+		main {
+			padding: 5%;
+		}
+
+		#drop-area {
+			border: 2px dashed #ccc;
+			border-radius: 1rem;
+			width: 60vw;
+			font-family: sans-serif;
+			margin: 5% auto;
+			padding: 0;
+		}
+
+		ul,
+		li {
+			padding: 0;
+			margin: 0;
+			list-style: none;
+		}
+
+		ul#the-file-list:empty:after {
+			content: "Please select files. You can drag and drop.";
+			padding: 1rem;
+		}
+
+		ul#the-file-list {
+			display: flex;
+			flex-flow: column wrap;
+			border-top: 2px dashed #ccc;
+			border-bottom: 2px dashed #ccc;
+		}
+
+		ul#the-file-list li {
+			flex: 1;
+			padding: 1rem;
+			border-bottom: 2px dashed #ccc;
+		}
+
+		ul#the-file-list li:hover {
+			background-color: red;
+			color: #fff;
+			cursor: pointer;
+		}
+
+		ul#the-file-list li:last-child {
+			border-bottom: 0;
+		}
+
+		.field {
+			padding: 1rem;
+			margin: 0;
+		}
+
+		#drop-area.highlight {
+			border-color: purple;
+		}
+
+		p {
+			margin-top: 0;
+		}
+
+		#error {
+			color: red;
+			padding: 1rem;
+			font-size: 1.2rem;
+			border-top: 2px dashed #ccc;
+		}
+
+		#error:empty {
+			display: none;
+		}
+	</style>
+</head>
+
+<body>
+	<header>
+		<h1><strong>Ahrefs Backlinks Cleaner</strong> <span>(c) LAZHAR LIMITED</span></h1>
+	</header>
+
+	<main id="drop-area">
+		<form id="the-form">
+			<div class="field">
+				<input id="the-files" type="file" accept="text/csv" onchange="handleFiles(this.files)"
+					multiple="multiple">
+			</div>
+			<div id="error"></div>
+			<ul id="the-file-list"></ul>
+			<div class="field">
+				<button type="submit">Clean Up</button>
+			</div>
+		</form>
+	</main>
+
+	<script>
+		const form = document.getElementById(`the-form`)
+		const dropArea = document.getElementById('drop-area')
+
+			;['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+				dropArea.addEventListener(eventName, preventDefaults, false);
+			})
+
+			;['dragenter', 'dragover'].forEach(eventName => {
+				dropArea.addEventListener(eventName, highlight, false)
+			})
+
+			;['dragleave', 'drop'].forEach(eventName => {
+				dropArea.addEventListener(eventName, unhighlight, false)
+			})
+
+		dropArea.addEventListener('drop', handleDrop, false)
+
+		const getFiles = () => Array.from(document.getElementById(`the-files`).files)
+
+		const setLoading = (val) => {
+			form.style.opacity = val ? 0.2 : 1
+			form.style.pointerEvents = val ? `none` : `auto`
+		}
+
+		const handleSubmit = async (e) => {
+			e.preventDefault()
+
+			try {
+				showError()
+				setLoading(true)
+
+				const apiCall = await fetch(window.location.href, {
+					method: `POST`,
+					body: JSON.stringify({
+						inputs: Array.from(files)
+					})
+				})
+
+				const response = await apiCall.json()
+
+				console.log(`received: `, response)
+
+				const now = new Date()
+				const fileName = formatFileName(`clean-ahrefs-backlinks-${now.getFullYear()}-${now.getMonth()}-${now.getDay()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}.csv`)
+				downloadFileData(fileName, response.csv)
+
+			} catch (error) {
+				showError(error)
+				console.error(error)
+			} finally {
+				setLoading(false)
+			}
+
+		}
+
+		form.addEventListener(`submit`, handleSubmit)
+
+	</script>
+</body>
+
+</html>

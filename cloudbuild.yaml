@@ -1,0 +1,26 @@
+# [START functions_ci_cd_cloud_build]
+steps:
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["install"]
+  - name: "gcr.io/cloud-builders/npm"
+    args: ["run", "build"]
+  - name: "bash"
+    args: [cp, "package.json", "dist"]
+  - name: "bash"
+    args: [cp, "package-lock.json", "dist"]
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      [
+        functions,
+        deploy,
+        ahrefs-new-backlinks-cleaner,
+        --source,
+        dist,
+        --entry-point,
+        handler,
+        --runtime,
+        nodejs14,
+        --trigger-http,
+        --allow-unauthenticated,
+      ]
+# [END functions_ci_cd_cloud_build]
