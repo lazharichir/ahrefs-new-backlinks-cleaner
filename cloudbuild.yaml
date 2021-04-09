@@ -11,7 +11,7 @@ steps:
         deploy,
         ahrefs-new-backlinks-cleaner,
         --source,
-        .,
+        ".",
         --entry-point,
         handler,
         --runtime,
