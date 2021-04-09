@@ -2,7 +2,7 @@
 	"name": "ahrefs-new-backlinks-cleaner",
 	"version": "1.0.0",
 	"description": "",
-	"main": "dist/index.js",
+	"main": "dist/src/index.js",
 	"scripts": {
 		"build": "tsc",
 		"start": "functions-framework --source=dist/src/ --target=handler",
