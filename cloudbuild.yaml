@@ -4,10 +4,6 @@ steps:
     args: ["install"]
   - name: "gcr.io/cloud-builders/npm"
     args: ["run", "build"]
-  - name: "bash"
-    args: [cp, "package.json", "dist"]
-  - name: "bash"
-    args: [cp, "package-lock.json", "dist"]
   - name: gcr.io/cloud-builders/gcloud
     args:
       [
@@ -15,7 +11,7 @@ steps:
         deploy,
         ahrefs-new-backlinks-cleaner,
         --source,
-        dist,
+        .,
         --entry-point,
         handler,
         --runtime,
