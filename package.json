@@ -5,7 +5,7 @@
 	"main": "dist/src/index.js",
 	"scripts": {
 		"build": "tsc",
-		"start": "functions-framework --source=dist/src/ --target=handler",
+		"start": "functions-framework --source=. --target=handler",
 		"watch": "concurrently \"tsc -w\" \"nodemon --watch ./dist/ --exec npm run start\"",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},

@@ -38,9 +38,6 @@ const handlePOST: HttpFunction = async (req, res) => {
 
 	for (const input of inputs) {
 		const [guid, stringifiedCsv] = input
-
-		console.log(stringifiedCsv)
-
 		batch.newSheet(guid, stringifiedCsv)
 	}
 
