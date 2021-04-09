@@ -16,6 +16,10 @@ steps:
         handler,
         --runtime,
         nodejs14,
+        --memory,
+        512MB,
+        --max-instances,
+        "2",
         --trigger-http,
         --allow-unauthenticated,
       ]
