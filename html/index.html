@@ -4,6 +4,13 @@
 	<title>Ahrefs Backlinks Cleaner</title>
 	<script>
 		const files = new Map();
+		const metas = new Map();
+
+		const formatBytes = (a, b = 2) => { if (0 === a) return "0 Bytes"; const c = 0 > b ? 0 : b, d = Math.floor(Math.log(a) / Math.log(1024)); return parseFloat((a / Math.pow(1024, d)).toFixed(c)) + " " + ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"][d] }
+
+		const getTotalBytes = () => Array.from(metas.values()).reduce((acc, cur) => acc + cur.size, 0)
+
+		const isTooBig = () => getTotalBytes() >= 9990000
 
 		const generateGuid = () => {
 			var result, i, j;
@@ -69,8 +76,8 @@
 
 		const handleDrop = (e) => {
 			let dt = e.dataTransfer
-			let files = dt.files
-			handleFiles(files)
+			let dtfiles = dt.files
+			handleFiles(dtfiles)
 		}
 
 		const handleFiles = (files) => {
@@ -82,12 +89,14 @@
 			const data = await fileToText(file)
 			const guid = generateGuid()
 			files.set(file.name, data)
+			metas.set(file.name, file)
 			console.log(`>>> ${file.name}`, file)
 			renderFileList()
 		}
 
 		const removeFile = (fileName) => {
 			files.delete(fileName)
+			metas.delete(fileName)
 			renderFileList()
 		}
 
@@ -99,16 +108,37 @@
 			}
 
 			for (const [fileName, fileData] of Array.from(files)) {
+				const meta = metas.get(fileName)
 				const li = document.createElement(`li`)
+				li.classList.add(`file-item`)
 				li.onclick = (e) => {
 					e.preventDefault()
 					removeFile(fileName)
 				}
 				const span = document.createElement(`span`)
+				const em = document.createElement(`em`)
 				span.textContent = fileName
+				em.textContent = formatBytes(meta.size)
+				span.classList.add(`file-name`)
+				em.classList.add(`file-size`)
 				li.appendChild(span)
+				li.appendChild(em)
 				list.appendChild(li)
 			}
+
+			const li = document.createElement(`li`)
+			li.classList.add(`total-size`)
+			if (isTooBig())
+				li.classList.add(`too-big`)
+
+			const span = document.createElement(`span`)
+			const small = document.createElement(`small`)
+			small.textContent = `The maximum size for a single request is 9.90MB. Make multiple requests if need be.`
+			span.textContent = isTooBig()
+				? `❌ ${formatBytes(getTotalBytes())} (TOO BIG)`
+				: `✅ ${formatBytes(getTotalBytes())} (SIZE OK)`
+			li.append(span)
+			list.append(li)
 		}
 
 		const showError = (error = ``) => {
@@ -180,14 +210,37 @@
 			border-bottom: 2px dashed #ccc;
 		}
 
-		ul#the-file-list li:hover {
+		ul#the-file-list li:last-child {
+			border-bottom: 0;
+		}
+
+		ul#the-file-list li.file-item {
+			display: flex;
+		}
+
+		ul#the-file-list li.file-item .file-name {
+			flex-grow: 1;
+		}
+
+		ul#the-file-list li.file-item .file-size {
+			flex-shrink: 1;
+			display: inline-block;
+			font-size: .8em;
+			padding: .5em;
+			background: #f9f9f9;
+			border-radius: 5px;
+			color: #000;
+			font-weight: bold;
+			margin: 0;
+			align-self: center;
+			font-style: normal;
+			white-space: nowrap;
+		}
+
+		ul#the-file-list li.file-item:hover {
 			background-color: red;
 			color: #fff;
 			cursor: pointer;
-		}
-
-		ul#the-file-list li:last-child {
-			border-bottom: 0;
 		}
 
 		.field {
@@ -212,6 +265,16 @@
 
 		#error:empty {
 			display: none;
+		}
+
+		ul#the-file-list li.total-size {
+			background-color: #f9f9f9;
+		}
+
+		ul#the-file-list li.too-big {
+			background-color: #f9f9f9;
+			border: 1px solid red;
+			color: red;
 		}
 	</style>
 </head>
@@ -267,6 +330,11 @@
 				showError()
 				setLoading(true)
 
+				if (isTooBig()) {
+					alert(`Request is too large at ${formatBytes(getTotalBytes())}. The total size of this request should not exceed 9.90MB. Split this request into several batches.`)
+					return
+				}
+
 				const apiCall = await fetch(window.location.href, {
 					method: `POST`,
 					body: JSON.stringify({
@@ -281,7 +349,6 @@
 					throw new Error(response.error.message)
 
 				const now = new Date()
-				// const fileName = formatFileName(`clean-ahrefs-backlinks-${now.getFullYear()}-${now.getMonth()}-${now.getDay()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}.csv`)
 				const fileName = formatFileName(`clean-ahrefs-backlinks-${now.getTime()}.csv`)
 				downloadFileData(fileName, response.csv)
 
