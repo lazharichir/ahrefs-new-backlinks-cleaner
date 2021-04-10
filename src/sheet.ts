@@ -1,37 +1,6 @@
-import Papa from "papaparse"
+import Papa, { ParseResult } from "papaparse"
+import { evaluateRow } from "./filters"
 import { convertRow, RawRow, Row } from "./row"
-
-const bannedReferringPageUrls = [
-	/blogpost\.com/i,
-	/coupon/i,
-	/voucher/i,
-	/author|authors/i,
-	/tag|tags/i,
-	/category|categories/i,
-	/page|pages/i,
-	/logo/i,
-	/\/testimonial[s?]/i,
-	/\/search\//i,
-	/\/find\//i,
-	/\?\s\=/i,
-	/\?\q\=/i,
-	/feeds/i,
-	/watch[\/\?]/i,
-	/\.php/i,
-	/\.htm[l?]/i,
-	/png|jpg|mp3|mp4/i,
-	/\/r\//i,
-	/\/u\//i,
-	/\/([0-9]{4,})\/([0-9]{2,})\/$/i,
-]
-
-const bannedReferringPageTitles = [
-	/sex/i,
-	/xxx/i,
-	/images/i,
-	/keywords/i,
-	/coupons/i,
-]
 
 export class Sheet {
 	public readonly name: string = ``
@@ -52,11 +21,34 @@ export class Sheet {
 	public parseFromInput() {
 		this.rows = []
 		const parsed = Papa.parse<RawRow>(this.input, this.options.csvParser)
+		this.ensureInputFormat(parsed)
 		this.rows = parsed.data.map(convertRow)
 	}
 
+	public ensureInputFormat(data: ParseResult<RawRow>) {
+		const { meta } = data
+		const { fields = [] } = meta
+		const neededFields: Array<keyof RawRow> = [
+			`Referring Page URL`,
+			`Referring Page Title`,
+			`Link Anchor`,
+			`Type`,
+			`Domain Rating`,
+			`Language`,
+			`Link URL`,
+		]
+
+		for (const field of neededFields) {
+			const fieldFound = fields.includes(field)
+			if (!fieldFound)
+				throw new Error(
+					`Field '${field}' not found when parsing '${this.name}'.`
+				)
+		}
+	}
+
 	public makeShortlist(): void {
-		this.shortlist = this.rows.filter(this.evaluateRow)
+		this.shortlist = this.rows.filter(evaluateRow)
 	}
 
 	public getShortlist(): Row[] {
@@ -65,25 +57,5 @@ export class Sheet {
 
 	public getRows(): Row[] {
 		return this.rows
-	}
-
-	private evaluateRow(row: Row): boolean {
-		if (row.domainRating < 10) return false
-		if (row.language !== `en`) return false
-		if (row.type.includes(`image`)) return false
-		if (row.type.includes(`nofollow`)) return false
-
-		if (bannedReferringPageUrls.some((re) => re.test(row.referringPageUrl)))
-			return false
-
-		if (bannedReferringPageTitles.some((re) => re.test(row.referringPageTitle)))
-			return false
-
-		const nonAscii = row.referringPageTitle
-			.replace(/[\x00-\x7F€––“”»·]/g, "")
-			.trim()
-		if (nonAscii.length > 2) return false
-
-		return true
 	}
 }

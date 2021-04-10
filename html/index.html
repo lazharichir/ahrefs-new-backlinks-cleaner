@@ -275,11 +275,14 @@
 				})
 
 				const response = await apiCall.json()
-
 				console.log(`received: `, response)
 
+				if (response.error)
+					throw new Error(response.error.message)
+
 				const now = new Date()
-				const fileName = formatFileName(`clean-ahrefs-backlinks-${now.getFullYear()}-${now.getMonth()}-${now.getDay()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}.csv`)
+				// const fileName = formatFileName(`clean-ahrefs-backlinks-${now.getFullYear()}-${now.getMonth()}-${now.getDay()}-${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}.csv`)
+				const fileName = formatFileName(`clean-ahrefs-backlinks-${now.getTime()}.csv`)
 				downloadFileData(fileName, response.csv)
 
 			} catch (error) {

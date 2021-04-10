@@ -4,22 +4,31 @@ import { resolve } from "path"
 import { Batch } from "./batch"
 
 export const handler: HttpFunction = async (req, res) => {
-	const { method } = req
+	try {
+		const { method } = req
 
-	let data = ``
+		let data = ``
 
-	switch (method) {
-		case `GET`:
-			data = await handleGET(req, res)
-			break
-		case `POST`:
-			data = await handlePOST(req, res)
-			break
-		default:
-			throw new Error(`Method '${method}' is not supported.`)
+		switch (method) {
+			case `GET`:
+				data = await handleGET(req, res)
+				break
+			case `POST`:
+				data = await handlePOST(req, res)
+				break
+			default:
+				throw new Error(`Method '${method}' is not supported.`)
+		}
+
+		res.send(data)
+	} catch (error) {
+		console.error(error)
+		res.status(422).send({
+			error: {
+				message: error.message || `No error message.`,
+			},
+		})
 	}
-
-	res.send(data)
 }
 
 const handleGET: HttpFunction = async (req, res) => {
@@ -45,11 +54,11 @@ const handlePOST: HttpFunction = async (req, res) => {
 	batch.shortlistAll()
 	batch.combineShortlists()
 
-	res.send({
+	return {
 		csv: batch.getShortlistAsCSV(),
 		shortlist: batch.getShortlist(),
 		statistics: {
 			shortlistLength: batch.getShortlist().length,
 		},
-	})
+	}
 }
