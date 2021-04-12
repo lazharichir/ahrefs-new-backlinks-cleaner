@@ -2,7 +2,7 @@ import { URL } from "url"
 import { Row } from "./row"
 
 export const bannedReferringPageUrls = [
-	/blogpost\.com/i,
+	/blogspot\.com/i,
 	/coupon|voucher/i,
 	/whois/i,
 	/hosting/i,
@@ -31,9 +31,9 @@ export const bannedReferringPageUrls = [
 export const bannedReferringPageTitles = [
 	/sex/i,
 	/xxx/i,
-	/images/i,
-	/keywords/i,
-	/coupons/i,
+	/image/i,
+	/keyword/i,
+	/coupon/i,
 ]
 
 export const evaluateRow = (row: Row): boolean => {
